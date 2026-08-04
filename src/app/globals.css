@@ -1,26 +1,193 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-mono-numbers);
+  --font-heading: var(--font-display);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Tournament Manager design system (see UI.txt). Dark-only — there is no theme
+   toggle, so the palette lives directly on :root rather than gated behind .dark. */
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #17171b;
+  --card-foreground: #fafafa;
+  --popover: #17171b;
+  --popover-foreground: #fafafa;
+  --primary: #7c3aed;
+  --primary-foreground: #fafafa;
+  --secondary: #1f1f25;
+  --secondary-foreground: #fafafa;
+  --muted: #111114;
+  --muted-foreground: #80808f;
+  --accent: #1f1f25;
+  --accent-foreground: #fafafa;
+  --destructive: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --border: #2a2a31;
+  --input: #2a2a31;
+  --ring: #7c3aed;
+  --chart-1: #7c3aed;
+  --chart-2: #b6b6c2;
+  --chart-3: #80808f;
+  --chart-4: #16a34a;
+  --chart-5: #f59e0b;
+  --radius: 1.125rem;
+  --sidebar: #111114;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #1f1f25;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #2a2a31;
+  --sidebar-ring: #7c3aed;
+}
+
+.dark {
+  /* identical to :root — kept as an alias in case a theme toggle is added later */
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #17171b;
+  --card-foreground: #fafafa;
+  --popover: #17171b;
+  --popover-foreground: #fafafa;
+  --primary: #7c3aed;
+  --primary-foreground: #fafafa;
+  --secondary: #1f1f25;
+  --secondary-foreground: #fafafa;
+  --muted: #111114;
+  --muted-foreground: #80808f;
+  --accent: #1f1f25;
+  --accent-foreground: #fafafa;
+  --destructive: #dc2626;
+  --success: #16a34a;
+  --warning: #f59e0b;
+  --border: #2a2a31;
+  --input: #2a2a31;
+  --ring: #7c3aed;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(124, 58, 237, 0.15), transparent 70%),
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      64px 64px,
+      64px 64px;
+    background-attachment: fixed;
+  }
+  html {
+    @apply font-sans;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Bracket connector lines (see BracketTree). Relies on every column sharing the same
+   total height with justify-content:space-around, so a round's matches land exactly at
+   the vertical midpoint of the two matches feeding them — connectors are pure CSS, no
+   JS measurement required. Rendered as thin, rounded, faintly-glowing violet routing
+   lines rather than plain borders, per the "architectural blueprint" design language. */
+.bracket-connector::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 25%;
+  height: 50%;
+  width: 1.5px;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--primary), transparent 45%);
+  box-shadow: 0 0 6px color-mix(in oklch, var(--primary), transparent 65%);
+}
+.bracket-connector::after {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 20px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--primary), transparent 45%);
+  box-shadow: 0 0 6px color-mix(in oklch, var(--primary), transparent 65%);
+}
+.bracket-stub-right {
+  position: relative;
+}
+.bracket-stub-right::after {
+  content: "";
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  width: 20px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--primary), transparent 45%);
+  box-shadow: 0 0 6px color-mix(in oklch, var(--primary), transparent 65%);
+}
+.bracket-connector-straight::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  width: 20px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: color-mix(in oklch, var(--primary), transparent 45%);
+  box-shadow: 0 0 6px color-mix(in oklch, var(--primary), transparent 65%);
 }
