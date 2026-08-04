@@ -1,0 +1,694 @@
+PROJECT VISION
+
+Design the world's most premium tournament management application.
+
+The product is called Tournament Topologies.
+
+The interface should feel like it was designed by the teams behind:
+
+Apple
+Linear
+Vercel
+Figma
+Stripe Dashboard
+
+combined with the visual prestige of
+
+Formula 1 Race Control
+Olympic branding
+Arcane's cinematography
+Nothing Technology
+Minimal Swiss graphic design
+
+without copying any of them.
+
+The application should communicate
+
+precision,
+structure,
+competition,
+progression,
+mastery.
+
+Nothing should feel childish.
+
+Nothing should resemble a generic admin dashboard.
+
+Nothing should look like a gaming website full of RGB lights.
+
+Everything must feel engineered.
+
+DESIGN LANGUAGE
+
+The entire interface is inspired by
+
+Graphs.
+
+Topology.
+
+Networks.
+
+Architectural blueprints.
+
+Tournament progression.
+
+Every connection should imply movement.
+
+Every page should imply flow.
+
+Every animation should imply advancement.
+
+The user should subconsciously feel that every action pushes a tournament toward its inevitable champion.
+
+VISUAL IDENTITY
+
+Instead of designing "cards"
+
+design
+
+panels.
+
+Instead of "buttons"
+
+design
+
+controls.
+
+Instead of "lists"
+
+design
+
+systems.
+
+Everything should have intention.
+
+Nothing should be decorative.
+
+STYLE
+
+Modern Minimalism
+
+Architectural
+
+Editorial
+
+Monumental
+
+Calm
+
+Elegant
+
+Confident
+
+Timeless
+
+COLOR SYSTEM
+Background
+
+Primary
+
+#09090B
+
+Secondary
+
+#111114
+
+Surface
+
+#17171B
+
+Elevated
+
+#1F1F25
+
+Border
+
+#2A2A31
+
+Divider
+
+rgba(255,255,255,0.06)
+
+Typography
+
+Primary
+
+#FAFAFA
+
+Secondary
+
+#B6B6C2
+
+Muted
+
+#80808F
+
+Accent
+
+Single accent only.
+
+Royal Violet
+
+#7C3AED
+
+Used for
+
+active state
+progression
+champion
+focus
+
+Never overused.
+
+Success
+
+Soft Emerald
+
+#16A34A
+
+Warning
+
+Amber
+
+#F59E0B
+
+Danger
+
+Muted Crimson
+
+#DC2626
+GRADIENTS
+
+Never rainbow.
+
+Use only subtle radial gradients.
+
+Background
+
+radial-gradient(
+top center,
+rgba(124,58,237,.15),
+transparent 70%
+)
+
+Secondary
+
+linear-gradient(
+180deg,
+
+rgba(255,255,255,.02),
+
+rgba(255,255,255,0)
+)
+
+Cards should never have visible gradients.
+
+Only lighting.
+
+BACKGROUND
+
+The background should not be flat.
+
+Create a huge architectural grid.
+
+Extremely subtle.
+
+Inspired by
+
+CAD
+
+Blueprints
+
+Network topology
+
+Circuit routing
+
+Barely visible.
+
+As the mouse moves
+
+lighting shifts slightly.
+
+TYPOGRAPHY
+
+Use
+
+Display
+
+Space Grotesk
+
+or
+
+Satoshi
+
+Body
+
+Inter
+
+Numbers
+
+IBM Plex Mono
+
+Weights
+
+900
+
+700
+
+500
+
+400
+
+No thin fonts.
+
+Spacing
+
+Extremely generous.
+
+Whitespace is prestige.
+
+MOTION
+
+Everything animates.
+
+Nothing bounces.
+
+Nothing is playful.
+
+Animations should feel
+
+inevitable.
+
+Examples
+
+Hover
+
+100ms
+
+Page transition
+
+350ms
+
+Dialog
+
+250ms
+
+Bracket advancement
+
+500ms
+
+Standings reorder
+
+400ms
+
+Spring
+
+very low bounce.
+
+ICONOGRAPHY
+
+Lucide only.
+
+Stroke width
+
+1.75
+
+Icons should always align perfectly.
+
+Never emoji.
+
+Except champion reveal.
+
+HOME PAGE
+
+The landing page should immediately communicate
+
+"Competition begins here."
+
+Hero
+
+Massive title
+
+Tournament Topologies
+
+Subtitle
+
+The Architecture of Competition
+
+Below
+
+A dynamic animated graph slowly constructing itself.
+
+Nodes connect.
+
+Lines illuminate.
+
+No particles.
+
+No floating blobs.
+
+Primary CTA
+
+Create Tournament
+
+Large.
+
+Filled.
+
+Secondary
+
+Browse Tournaments
+
+Ghost.
+
+Tournament Cards
+
+Not tables.
+
+Not rows.
+
+Cards.
+
+Each card displays
+
+Tournament Name
+
+Format
+
+Status
+
+Participants
+
+Created Date
+
+Champion (if completed)
+
+Hover
+
+Card lifts
+
+Border glows
+
+Shadow deepens
+
+Background slightly brightens
+
+CREATE TOURNAMENT MODAL
+
+Centered.
+
+Large.
+
+Elegant.
+
+Split layout.
+
+Left
+
+Form
+
+Right
+
+Live preview.
+
+The preview should beautifully illustrate how the selected tournament format works.
+
+When changing format
+
+Animate between layouts.
+
+The form should feel premium.
+
+Large labels.
+
+Large dropdowns.
+
+Rounded inputs.
+
+No sharp corners.
+
+PARTICIPANT SETUP
+
+This page should feel like preparing a world championship.
+
+Instead of a plain list
+
+Each participant appears inside a premium row panel.
+
+#1
+
+Levi
+
+Seed 1
+
+Move
+
+Delete
+
+Rows animate smoothly.
+
+Dragging participants should feel effortless.
+
+Seed numbers become elegant numbered badges.
+
+The participant count should appear huge.
+
+64 Players
+
+not
+
+Participants (64)
+
+Randomize button
+
+Animated shuffle icon.
+
+Start Tournament
+
+Massive.
+
+Centered.
+
+Impossible to miss.
+
+BRACKET PAGE
+
+The masterpiece.
+
+The bracket should dominate the screen.
+
+Everything else becomes secondary.
+
+The bracket is the product.
+
+Match Cards
+
+Floating.
+
+Consistent height.
+
+Perfect spacing.
+
+Rounded
+
+18px
+
+Soft shadow
+
+Border
+
+Thin.
+
+Each card
+
+Player One
+
+Player Two
+
+Score
+
+Status
+
+Hover
+
+Glow.
+
+Lift.
+
+Subtle lighting.
+
+Winner
+
+Accent strip appears.
+
+Loser fades slightly.
+
+Completed matches
+
+Become calmer.
+
+Pending
+
+Brighter.
+
+Connector Lines
+
+Do not look like borders.
+
+Render them like elegant architectural routing.
+
+1.5px.
+
+Rounded joints.
+
+Subtle glow.
+
+When someone advances
+
+The path illuminates.
+
+Grand Finals
+
+A different visual language.
+
+Larger spacing.
+
+Gold accent.
+
+Special typography.
+
+Feels ceremonial.
+
+ROUND ROBIN
+
+Standings become primary.
+
+Matches become secondary.
+
+Standings table
+
+Minimal.
+
+Huge spacing.
+
+Monospaced numbers.
+
+Animated sorting.
+
+The currently leading player receives a tiny crown indicator.
+
+SWISS
+
+Eventually visualize
+
+record buckets
+
+3-0
+
+2-1
+
+1-2
+
+0-3
+
+Connections illustrate movement between records.
+
+The interface should resemble an evolving network rather than static columns.
+
+(Currently your engine displays rounds and standings, so the UI should anticipate this future visualization without implying it's already implemented. )
+
+CHAMPION SCREEN
+
+When the final match concludes
+
+Everything fades.
+
+Bracket darkens.
+
+One card remains illuminated.
+
+Large typography
+
+CHAMPION
+
+Below
+
+Player name
+
+Below
+
+Tournament Name
+
+Minimal gold particle effect.
+
+No confetti.
+
+No fireworks.
+
+Elegant.
+
+Timeless.
+
+EMPTY STATES
+
+Every empty state is beautiful.
+
+No boring text.
+
+Use architectural illustrations.
+
+Examples
+
+No tournaments
+
+↓
+
+Blueprint node network
+
+No participants
+
+↓
+
+Empty bracket skeleton
+
+No matches
+
+↓
+
+Topology diagram
+
+RESPONSIVE DESIGN
+
+Desktop is the primary experience.
+
+On mobile
+
+The bracket becomes horizontally scrollable.
+
+Round labels stay sticky.
+
+Cards snap into place.
+
+Navigation collapses elegantly.
+
+Never shrink desktop UI blindly.
+
+Redesign interactions for touch.
+
+MICROINTERACTIONS
+
+Every interaction should reinforce progression:
+
+Hovering a match subtly brightens its connectors.
+Reporting a score animates the winner's path into the next round.
+Renaming a participant crossfades the updated name everywhere it appears.
+Completing a tournament transitions seamlessly into the champion reveal.
+Status badges gently pulse only while a tournament is active.
+Focus states use the violet accent consistently for accessibility and visual cohesion.
+FINAL DESIGN PRINCIPLE
+
+The interface should never feel like software for entering tournament data.
+
+It should feel like the operating system for competition.
+
+Users should leave with the impression that they managed an event of consequence—not merely filled in a bracket.

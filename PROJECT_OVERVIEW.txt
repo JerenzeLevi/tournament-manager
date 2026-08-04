@@ -1,0 +1,461 @@
+TOURNAMENT TOPOLOGIES — PROJECT OVERVIEW
+==========================================
+Generated as a reference document for reviewing/redesigning the UI.
+Last updated: 2026-08-01
+
+See also: VERSION.md (version history — any major change should be logged there)
+and UI.txt (the full target design-language spec; PROJECT_OVERVIEW section 6.7
+and section 9 track what's been implemented from it vs still deferred).
+
+
+1. WHAT THIS PROJECT IS AND WHY
+--------------------------------
+A web app for creating and running tournaments in multiple formats — single
+elimination, double elimination, round robin, and Swiss — with real persistence
+(Postgres), not just browser-local state. The original ask was: "can we just write
+names, save it, and it won't disappear on refresh" — the answer was yes, via a real
+database, and the app grew from there into a full bracket engine + UI.
+
+Nobody logs in. Anyone with a tournament's URL can add participants, start it, and
+report scores. There is one hidden admin capability (see section 7) for wiping all
+data, gated behind an easter egg — not part of the normal user flow.
+
+No real teams/orgs/users exist in this system beyond "participant names typed in by
+whoever is running the tournament." It is a single-purpose bracket tool, not a
+platform with accounts.
+
+
+2. TECH STACK
+-------------
+- Next.js 16 (App Router), TypeScript, Turbopack
+- Neon Postgres (serverless, via Vercel Marketplace) — the real database
+- Drizzle ORM — schema + queries, no raw SQL
+- shadcn/ui (Radix-based) + Tailwind CSS v4 — component library and styling
+- Server Actions — all mutations (create tournament, add participant, report score,
+  etc.) are plain async functions marked "use server", called directly from client
+  components. There is no separate REST/GraphQL API layer.
+- No auth. No test framework wired up yet (verification so far has been manual +
+  scripted simulation, see section 8).
+
+
+3. FILE / FOLDER STRUCTURE (hierarchical, with purpose)
+--------------------------------------------------------
+src/
+  db/
+    schema.ts       Drizzle table definitions — the single source of truth for the
+                     data model (see section 4).
+    index.ts        Lazy-initialized Neon/Drizzle client (getDb()). Lazy so that
+                     `next build` doesn't crash before DATABASE_URL exists.
+
+  lib/tournament-engine/
+    types.ts         Shared TypeScript types used across all four format engines
+                     (EngineParticipant, EngineMatch, GeneratedRound, etc).
+    single-elim.ts   Generates a single-elimination bracket (seeded, power-of-2
+                     padded with byes) and computes where a match winner advances to.
+    double-elim.ts   Generates winners bracket + losers bracket + grand finals
+                     skeleton, and computes advance-targets for winners/losers of
+                     every bracket side (this is the most structurally complex file
+                     — see the big comment block at the top explaining the losers-
+                     bracket round-numbering scheme).
+    round-robin.ts   Generates a round-robin schedule (circle method, with byes for
+                     odd participant counts) and computes standings (W/L/D, point
+                     diff) from completed matches.
+    swiss.ts         Generates the next Swiss round's pairings from current
+                     standings (avoiding rematches where possible) and computes the
+                     default number of rounds for a given participant count.
+    index.ts         Barrel re-export of the above.
+
+    IMPORTANT: every function in this folder is a PURE function — no DB access, no
+    side effects. They take plain data in and return plain data out. All DB writes
+    happen in src/app/actions/tournaments.ts, which calls these functions and then
+    persists the result. This separation is deliberate: the engine logic can be
+    tested/reasoned about without touching Postgres.
+
+  app/
+    layout.tsx           Root layout — fonts, global CSS, toast notifications, and
+                         the site-wide footer containing the hidden admin-panel logo
+                         (see section 7).
+    globals.css          Tailwind theme tokens (light/dark) + the hand-written CSS
+                         for bracket connector lines (see section 6.3).
+    page.tsx             Home page — lists all tournaments, "New Tournament" button.
+    t/[id]/page.tsx       Tournament detail page — the main screen. Server component;
+                         fetches tournament + participants + rounds + matches from
+                         the DB and passes them down as props to client components.
+
+    actions/
+      tournaments.ts     ALL tournament mutations live here: createTournament,
+                         addParticipant, removeParticipant, renameParticipant,
+                         setParticipantSeed, shuffleSeeds, startTournament,
+                         recordResult, setRoundBestOf. This file is the bridge
+                         between the pure engine functions and the database — see
+                         section 5 for what each function actually does.
+      admin.ts           The hidden admin gate: checkAdminCredentials (hardcoded
+                         username/password, checked server-side only) and
+                         deleteAllTournaments (wipes every tournament, requires an
+                         exact confirmation phrase).
+
+  components/
+    create-tournament-dialog.tsx   "New Tournament" modal: name, format picker,
+                                   best-of picker, and a live layout preview image
+                                   (reuses the reference images in public/display/)
+                                   that switches based on the selected format.
+    participant-manager.tsx        Setup-phase participant list: add by name, a
+                                   per-participant seed-position dropdown (#1..#N,
+                                   shifts everyone else automatically), a
+                                   "Randomize all seeds" link, remove button.
+    start-tournament-button.tsx     Client button that calls startTournament()
+                                   (disabled until 2+ participants). For single/
+                                   double elim, first runs the pure bracket-
+                                   generation functions client-side (no DB writes)
+                                   to check whether the participant count is a
+                                   power of 2 — if not, shows a confirmation dialog
+                                   naming exactly which seed(s) will get a bye into
+                                   Round 2 before the host can proceed (see 6.6).
+    bracket-view.tsx                Router component: decides whether to render
+                                   BracketTree (single/double elim) or RoundsBoard
+                                   (round robin/Swiss) based on tournament format.
+                                   For double elim, splits winners/losers/grand
+                                   finals into separate sections and works out
+                                   which rounds need a "halving" vs "straight"
+                                   connector line (see section 6.3).
+    bracket-tree.tsx                Renders the actual connected bracket (lines +
+                                   columns) for single/double elimination, using a
+                                   pure-CSS technique (no JS measurement) — see
+                                   section 6.3 for how the math works.
+    rounds-board.tsx                Renders round robin / Swiss as plain columns of
+                                   match cards, one column per round, no connector
+                                   lines (there's no bracket-tree topology to draw
+                                   for these formats).
+    round-best-of-editor.tsx        Small inline dropdown (Bo1/3/5/7) shown on every
+                                   round's header, letting the host escalate format
+                                   round-by-round (e.g. Bo3 → Bo5 → Bo7 final).
+    match-card.tsx                  The atomic unit: shows two participant names
+                                   (click-to-rename inline), score inputs (capped to
+                                   the round's best-of, requires the winner to reach
+                                   majority before submitting), and a "Report Score"
+                                   button. Has a `fixedHeight` mode used inside
+                                   BracketTree so every card is exactly the same
+                                   height (required for the connector-line math).
+    standings-table.tsx              W/L/D + point-differential table for round
+                                   robin / Swiss.
+    tournament-results.tsx           Shown once a tournament is "complete": Champion
+                                   /Runner-up/3rd(/4th) with trophy/medal icons.
+                                   Computes placements by format (see 6.8).
+    admin-easter-egg.tsx             The hidden logo + click-5-times-fast + login +
+                                   wipe-everything panel (section 7).
+    ui/                              Unmodified shadcn primitives (button, card,
+                                   dialog, input, select, table, etc).
+
+  public/
+    display/               Reference/inspiration images you provided (single.jpg,
+                           double.jpg, swiss.jpg) — now ALSO used live as the format
+                           preview thumbnails in the create-tournament dialog.
+    us-logo.png            The Unhinge Society logo used for the admin easter egg.
+
+drizzle.config.ts       Drizzle Kit config (schema path, Postgres dialect, reads
+                         DATABASE_URL).
+
+
+4. DATA MODEL (Postgres, via Drizzle — src/db/schema.ts)
+----------------------------------------------------------
+One schema shape serves all four formats — the differences are in how rounds/matches
+get GENERATED and ADVANCED, not in the table structure.
+
+tournaments
+  id, name, format (enum), status (setup|active|complete),
+  settings (jsonb — currently holds { bestOf, swissRounds }), createdAt
+
+participants
+  id, tournamentId, name, seed (integer — determines bracket position / pairing
+  priority)
+
+rounds
+  id, tournamentId, roundNumber, label, bestOf (nullable int — overrides the
+  tournament's default best-of for just this round)
+
+  NOTE on roundNumber encoding for double elimination: winners-bracket rounds use
+  their natural number (1, 2, 3...), losers-bracket rounds are stored as
+  1000 + roundNumber, and the grand finals round is stored as 2000 + roundNumber.
+  This lets a single flat `rounds` table represent three logically separate
+  brackets without a separate "side" column driving the numbering. (There IS also a
+  bracketSide column on `matches` for the same purpose — the encoding is mostly a
+  convenience for sorting/grouping rounds correctly.)
+
+matches
+  id, tournamentId, roundId, participant1Id, participant2Id (nullable — null means
+  "not decided yet" or "bye"), score1, score2, winnerId, status (pending|complete),
+  bracketSlot (position within the round, used for advancement math),
+  bracketSide (winners|losers|grand_finals, nullable — only meaningful for
+  double elim)
+
+
+5. WHAT EACH SERVER ACTION DOES (src/app/actions/tournaments.ts)
+--------------------------------------------------------------------
+createTournament(name, format, bestOf)
+  Inserts a tournament row in "setup" status with the chosen default best-of stored
+  in settings.
+
+addParticipant / removeParticipant / renameParticipant
+  Basic CRUD on the participants table. renameParticipant is what powers
+  click-to-edit names directly inside bracket match cards.
+
+setParticipantSeed(tournamentId, participantId, newSeed)
+  Moves a participant to an exact 1-based seed position, shifting everyone else to
+  make room. This is the "host manually decides bracket placement" path.
+
+shuffleSeeds(tournamentId)
+  Randomizes every participant's seed — the "auto-generate" path.
+
+startTournament(tournamentId)
+  The big one. Reads all participants, calls the appropriate pure engine function
+  (generateSingleElimRounds / generateDoubleElimRounds / generateRoundRobinRounds /
+  generateNextSwissRound), and writes the resulting rounds+matches to the database.
+  For single/double elim, also immediately resolves any byes (a bye auto-completes
+  a match with a winner, but that winner still needs to be advanced into the next
+  round's slot — see advanceAllByes/advanceSingleElim/advanceDoubleElim helpers in
+  the same file).
+
+recordResult(tournamentId, matchId, score1, score2)
+  Validates the score against the round's best-of (if set), determines the winner,
+  marks the match complete, then depending on format:
+    - single_elim: advances the winner to the next round (or marks the tournament
+      complete if this was the final).
+    - double_elim: advances the winner AND routes the loser into the losers bracket
+      (or eliminates them if they were already in the losers bracket), or marks the
+      tournament complete if this was the grand finals.
+    - swiss: checks if the current round is fully complete, and if so either
+      generates the next round's pairings or marks the tournament complete.
+    - round_robin: checks if every match in the tournament is complete, and if so
+      marks it complete.
+
+setRoundBestOf(tournamentId, roundId, bestOf)
+  Overrides the best-of for a single round (used by round-best-of-editor.tsx).
+
+
+6. HOW THE CURRENT UI WORKS
+-----------------------------
+
+6.1 Page flow
+  "/"                Home — list of tournaments (name, format badge, status badge),
+                     "New Tournament" button opens a dialog (name, format, best-of,
+                     live layout preview image).
+  "/t/[id]"           Tournament detail page. Two states:
+                       - status = "setup": shows the participant manager (add
+                         names, set seed positions, randomize, remove) and a
+                         "Start Tournament" button (disabled until 2+ participants).
+                       - status = "active" or "complete": shows (if applicable) a
+                         standings table, then the bracket/rounds view.
+                     Has a "← All tournaments" back link at the top (this was
+                     explicitly requested — there was previously no way back).
+
+6.2 Match card (the atomic UI unit, match-card.tsx)
+  Two rows (one per participant), each with:
+    - the name, rendered as a button — click it to turn it into a text input,
+      type a new name, Enter/blur saves (renames the participant everywhere they
+      appear, since it's the same participant record).
+    - a score input (only if the match is live/pending and both participants are
+      known) — capped to the round's best-of, and the "Report Score" button stays
+      disabled until the entered scores are valid AND someone has reached the
+      majority needed to win that best-of.
+  Below that, a "Report Score" button (or, in fixedHeight/bracket mode, an invisible
+  placeholder of the same height so every card in a connector-line bracket lines up
+  exactly).
+
+6.3 Bracket connector lines (bracket-tree.tsx + globals.css) — the biggest piece of
+    "design" work in the codebase
+  Single/double elimination render as an actual connected tree (matching the
+  single.jpg/double.jpg reference images you provided), not just plain columns.
+  This is done with pure CSS, no JavaScript measurement:
+    - Every round-column has the SAME total height (based on round 1's match
+      count × a fixed row height).
+    - Each round uses `justify-content: space-around`, so — because later rounds
+      have exactly half as many matches — a round's matches land EXACTLY at the
+      vertical midpoint of the two matches feeding into them, automatically.
+    - Connector lines are drawn with CSS pseudo-elements (::before/::after) at
+      fixed pixel offsets in the gap between columns: a short horizontal "stub"
+      out of each match, a vertical bar spanning the midpoint-to-midpoint distance
+      of the two feeder matches, and a horizontal stub into the next match.
+    - Two connector "modes" exist: 'halve' (the classic doubling bracket bar, used
+      whenever a round has half as many matches as the previous one) and
+      'straight' (a single line, no bar, used when consecutive rounds have the
+      SAME match count — this happens in the double-elimination losers bracket,
+      where some rounds just receive a dropped-down loser 1:1 rather than
+      consolidating two winners together).
+    - Grand Finals is rendered as a "trailing" node attached to the winners
+      bracket with a single straight connector line from the winners-bracket
+      final.
+    - The losers bracket in double elim gets its OWN BracketTree instance
+      (separate card/section, own connector-type calculation) since its round
+      counts don't relate to the winners bracket's round count.
+  Round robin and Swiss do NOT get this treatment (rounds-board.tsx) — they're
+  rendered as plain side-scrolling columns of match cards, one column per round,
+  no lines. There's no natural "tree" topology to draw for these formats (Swiss
+  pairings change every round based on standings; round robin is a flat schedule).
+  Note: the swiss.jpg reference image shows a DIFFERENT kind of visualization —
+  matches grouped into win/loss-record buckets (e.g. "2-0", "1-1", "0-2") with
+  lines showing how winners/losers from one bucket feed the next. That style has
+  NOT been built yet; Swiss currently just shows a standings table + a plain list
+  of rounds.
+
+6.4 Best-of-N
+  Set once at creation as the tournament-wide default, but every round has its own
+  override (round-best-of-editor.tsx, a small Bo1/3/5/7 dropdown on each round's
+  header) — so a host can do Bo3 quarterfinals → Bo5 semis → Bo7 grand final. Score
+  inputs are hard-capped to the active round's best-of, and "Report Score" won't
+  enable until a real winner (majority of games) is reached. This is enforced both
+  client-side (immediate feedback) and server-side (recordResult re-validates
+  against the round's best-of before accepting the result — defense in depth).
+
+6.5 Seeding
+  A numbered dropdown per participant (#1, #2, ... #N) lets the host place someone
+  at an exact bracket position, shifting everyone else automatically. A
+  "Randomize all seeds" link does a full shuffle. This replaced an earlier,
+  confusing up/down-arrow design.
+
+6.6 Uneven-bracket byes (single/double elim only)
+  Single and double elimination need a power-of-2 participant count to form a
+  clean bracket (4, 8, 16...). With any other count (e.g. 6), the bracket still
+  gets padded up to the next power of 2, and standard tournament seeding gives the
+  TOP seeds a bye straight into Round 2 rather than making them play Round 1 —
+  this is normal, fair bracket practice, not a bug, but it used to happen silently.
+  Now, clicking "Start Tournament" first computes (client-side, no DB write yet)
+  exactly who would get a bye, and if anyone would, shows a confirmation dialog
+  naming them (e.g. "Seed 1 (Alice) and Seed 2 (Bob) will get a bye directly into
+  Round 2") before the host can proceed. The host can cancel and adjust the
+  participant count instead, or start anyway.
+  NOT implemented: a real Swiss-style play-in stage (e.g. for 6 participants,
+  seed 3 vs seed 5 and seed 4 vs seed 6 play a preliminary round, with the winners
+  then facing seed 1 and seed 2 respectively) — this was discussed as a possible
+  fuller fix but scoped down to "warn and confirm" for now since a real play-in /
+  Swiss→Elim hybrid is substantially more work (see section 9).
+
+6.7 Design system (per UI.txt, v0.2.0 — first pass, not the full spec)
+  UI.txt is a detailed target design-language document (color system, typography,
+  motion, page-by-page treatment) — see that file directly for the full brief.
+  What's implemented so far, defined in src/app/globals.css + src/app/layout.tsx:
+    - Dark-only palette via CSS variables on :root (no theme toggle exists, so the
+      palette is hardcoded rather than gated behind a .dark class): background
+      #09090B, card/surface #17171B, border #2A2A31, violet accent #7C3AED,
+      success/warning/danger mapped to emerald/amber/crimson.
+    - Fonts: Space Grotesk for headings (--font-heading), Inter for body text
+      (the Tailwind default --font-sans), IBM Plex Mono for every numeric display
+      (scores, seed badges, standings columns, dates) via a font-mono utility.
+    - 18px corner radius (--radius), a faint architectural grid + radial violet
+      glow behind the whole page (body background-image in globals.css).
+    - Bracket connector lines (section 6.3) re-styled as thin (1.5px), rounded,
+      glowing violet lines instead of plain gray borders.
+    - Home page rebuilt with a hero (large title/subtitle, primary "New
+      Tournament" + secondary "Browse Tournaments" CTAs) and tournament cards
+      that lift + glow on hover and show participant count + created date.
+  Explicitly NOT implemented from UI.txt (see section 9 for the full list) —
+  most notably: the champion reveal screen, the animated self-constructing graph
+  on the home page, drag-to-reorder participants, the Swiss win/loss-bucket
+  visualization, a dedicated mobile layout, and most of the microinteraction spec
+  (path illumination on advancement, name-change crossfade, pulsing status
+  badges). This was a deliberate scope cut, not an oversight — the full spec is a
+  substantially larger effort than one pass.
+
+6.8 Third place match + final results (v0.3.0)
+  Single elimination brackets with 4+ participants (i.e. an actual semifinal
+  round exists) now generate a real "Third Place Match" between the two
+  semifinal losers, instead of just discarding them. Mechanically:
+    - single-elim.ts exports hasThirdPlaceMatch(), semifinalRoundNumber(), and
+      loserToThirdPlace() — the last one decides which slot (participant1 vs
+      participant2) each semifinal loser lands in.
+    - The match is stored as a normal round/match row, but with a sentinel
+      roundNumber of -1 (THIRD_PLACE_ROUND_NUMBER) so it never collides with a
+      real bracket round and is trivially filterable. It's deliberately
+      EXCLUDED from the main BracketTree (bracket-view.tsx filters it out
+      before building the tree) since it doesn't fit the doubling-connector
+      math, and rendered instead as its own small standalone card below the
+      bracket.
+    - recordResult's single_elim branch now does three things instead of one:
+      (a) if the completed match was the semifinal, routes the loser into the
+      Third Place Match slot; (b) the tournament only flips to "complete" once
+      BOTH the Final and the Third Place Match are done (whichever finishes
+      second triggers it — order doesn't matter); (c) otherwise behaves as
+      before (advance winner to next round).
+  Once a tournament's status is "complete", tournament-results.tsx renders a
+  placements panel:
+    - single_elim: 1st/2nd from the Final, 3rd/4th from the Third Place Match
+      (computed directly from match data, no extra query).
+    - double_elim: 1st/2nd from Grand Finals, 3rd from the Losers Bracket
+      Final's loser — this comes for free from the existing bracket structure,
+      no schema change or extra match needed. 4th place is NOT computed (see
+      VERSION.md 0.3.0 entry for why — it's genuinely ambiguous for some
+      bracket sizes, not an oversight).
+    - round_robin / swiss: reuses computeStandings() for a top-5 ranked list.
+
+
+7. THE HIDDEN ADMIN PANEL (not part of the normal user flow)
+----------------------------------------------------------------
+A small, faded Unhinge Society logo sits in the footer of every page. Clicking it
+5 times within 1.5 seconds opens a login dialog (hardcoded credentials, checked
+server-side only so the password never ships in the client JS bundle). On success,
+an admin panel opens with one action: "Delete ALL tournaments" — clicking it shows
+an explicit "Are you sure you will erase all tournaments?" confirmation, which then
+requires typing an exact phrase before a final destructive button enables. This is
+a genuine hard delete (cascades to participants/rounds/matches via the DB foreign
+keys) — there is currently no soft-delete/undo.
+
+
+8. WHAT'S BEEN TESTED AND HOW
+--------------------------------
+- Full build (`next build`) passes cleanly at every step of this project so far.
+- Single elimination and round robin were exercised end-to-end through a real
+  browser (Playwright) early on: created a tournament, added participants
+  (including odd counts to force byes), started it, reported scores, confirmed
+  winner advancement, bye auto-advancement, and standings computation, and
+  confirmed state survives a hard page refresh (proving real DB persistence, not
+  just client-side state).
+- Double elimination was verified via a scripted simulation (not a browser) that
+  creates a tournament, plays every match programmatically, and prints the full
+  bracket state after each round — done for both a 4-player and an 8-player
+  bracket, confirming correct winners/losers routing, the losers-bracket "iron
+  man run" pattern (a first-round loser fighting all the way back to grand
+  finals), and correct final-completion status.
+  Two real bugs were caught and fixed this way:
+    (a) bye-winners in round 1 weren't being advanced into round 2 automatically
+        (fixed via an advanceAllByes pass in startTournament).
+    (b) the winners-bracket champion was never routed into Grand Finals — it kept
+        trying to advance within the winners bracket to a round that didn't exist
+        (fixed in double-elim.ts's winnersAdvance function).
+- Browser automation tooling (Playwright MCP, then the Chrome extension) both
+  disconnected partway through this project and have not been available for
+  visual verification of the more recent UI work (bracket connector lines,
+  seeding UI redesign, best-of controls, format preview images, inline renaming,
+  the uneven-bracket bye confirmation dialog). Those changes have been verified
+  via: successful production builds, type checking, and (for earlier changes)
+  inspecting server-rendered HTML output for expected markup/classes/text — NOT
+  via an actual rendered screenshot. If something looks visually off, that's the
+  most likely place to check first.
+
+
+9. KNOWN GAPS / NOT YET BUILT
+--------------------------------
+- Double round robin and Swiss+elimination hybrid formats (mentioned in the
+  original scope) are not implemented — only single elim, double elim, round
+  robin, and single (non-hybrid) Swiss exist. This includes a real play-in stage
+  for uneven elim brackets (e.g. 6 participants: seed 3 vs seed 5, seed 4 vs
+  seed 6, winners face seed 1/seed 2) — today, uneven brackets just warn-and-
+  confirm about byes rather than generating actual play-in matches (see 6.6).
+- The Swiss "win/loss bucket" bracket visualization from the swiss.jpg reference
+  (grouping matches into 2-0/1-1/0-2 style buckets with connector lines) has not
+  been built — Swiss currently only gets a standings table + plain round columns.
+  Grand Finals bracket reset (in case the losers-bracket finalist beats the
+  winners-bracket champion once but a double-elimination ruleset requires them to
+  win twice) is NOT implemented — grand finals is a single winner-takes-all match.
+- No tests (unit or e2e) are wired into the repo as an automated suite — all
+  verification so far has been manual/scripted, not CI-checked.
+- No visual QA has been done since browser automation tooling disconnected (see
+  section 8) — the bracket-line layout, spacing, and preview images have not
+  actually been SEEN rendered by anyone but you.
+- UI.txt (the full premium design-language spec) is only partially implemented —
+  see section 6.7 for exactly what shipped in v0.2.0. Not yet built: champion
+  reveal screen (gold accent, ceremonial layout), animated self-constructing
+  graph on the home page, drag-to-reorder participants (currently a numbered
+  dropdown instead), a dedicated mobile/touch redesign, empty-state
+  illustrations (blueprint node network, empty bracket skeleton, topology
+  diagram — currently plain text), and most of the microinteraction spec (path
+  illumination when a winner advances, name-change crossfade, pulsing
+  active-status badges, hover-brightened connectors).
