@@ -6,6 +6,8 @@ import { desc } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
 import { CreateTournamentDialog } from "@/components/create-tournament-dialog";
 
+export const dynamic = "force-dynamic";
+
 const formatLabels: Record<string, string> = {
   single_elim: "Single Elimination",
   double_elim: "Double Elimination",

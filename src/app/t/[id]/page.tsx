@@ -13,6 +13,8 @@ import { StandingsTable } from "@/components/standings-table";
 import { TournamentResults } from "@/components/tournament-results";
 import { computeStandings } from "@/lib/tournament-engine/round-robin";
 
+export const dynamic = "force-dynamic";
+
 const formatLabels: Record<string, string> = {
   single_elim: "Single Elimination",
   double_elim: "Double Elimination",
