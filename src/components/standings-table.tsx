@@ -21,7 +21,7 @@ function computeRanks(standings: Standing[]): number[] {
     const prevDiff = prev.pointsFor - prev.pointsAgainst;
     const currDiff = curr.pointsFor - curr.pointsAgainst;
     const tied = prev.wins === curr.wins && prevDiff === currDiff;
-    ranks.push(tied ? ranks[i - 1] : i + 1);
+    ranks.push(tied ? ranks[i - 1] : ranks[i - 1] + 1);
   }
   return ranks;
 }
