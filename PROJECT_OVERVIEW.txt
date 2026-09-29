@@ -228,6 +228,11 @@ recordResult(tournamentId, matchId, score1, score2)
     - round_robin: checks if every match in the tournament is complete, and if so
       marks it complete.
 
+recordDraw(tournamentId, matchId)
+  Round robin / Swiss only. Completes a match with winnerId = null and null scores
+  (a ½-½ draw, no schema change). Standings give each side 0.5 match points (win = 1).
+  Then runs the same Swiss-next-round / round-robin-complete check as recordResult.
+
 setRoundBestOf(tournamentId, roundId, bestOf)
   Overrides the best-of for a single round (used by round-best-of-editor.tsx).
 

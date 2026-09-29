@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { recordResult, renameParticipant } from "@/app/actions/tournaments";
+import { recordResult, recordDraw, renameParticipant } from "@/app/actions/tournaments";
 
 interface Match {
   id: string;
@@ -79,6 +79,7 @@ export function MatchCard({
   participantsById,
   fixedHeight,
   bestOf,
+  allowDraw,
 }: {
   tournamentId: string;
   match: Match;
@@ -89,6 +90,8 @@ export function MatchCard({
   /** Best-of-N games. Caps entry so a game count can't accidentally exceed the format,
    * and requires the winner to actually reach the majority before it can be reported. */
   bestOf?: number;
+  /** Round robin / Swiss: offer a "Draw ½-½" button (each side gets 0.5 match points). */
+  allowDraw?: boolean;
 }) {
   const [score1, setScore1] = useState(match.score1?.toString() ?? "");
   const [score2, setScore2] = useState(match.score2?.toString() ?? "");
@@ -133,6 +136,19 @@ export function MatchCard({
     });
   }
 
+  function submitDraw() {
+    startTransition(async () => {
+      await recordDraw(tournamentId, match.id);
+    });
+  }
+
+  // A completed two-player match with no winner. Byes always have a winner.
+  const isDrawResult =
+    match.status === "complete" &&
+    !!match.participant1Id &&
+    !!match.participant2Id &&
+    match.winnerId === null;
+
   function clampInput(raw: string): string {
     if (raw === "") return raw;
     const n = Number(raw);
@@ -164,7 +180,9 @@ export function MatchCard({
             onChange={(e) => setScore1(clampInput(e.target.value))}
           />
         ) : (
-          <span className="shrink-0 font-mono text-muted-foreground">{match.score1 ?? ""}</span>
+          <span className="shrink-0 font-mono text-muted-foreground">
+            {isDrawResult ? "½" : (match.score1 ?? "")}
+          </span>
         )}
       </div>
       <div className="mt-1 flex items-center justify-between gap-2">
@@ -187,7 +205,9 @@ export function MatchCard({
             onChange={(e) => setScore2(clampInput(e.target.value))}
           />
         ) : (
-          <span className="shrink-0 font-mono text-muted-foreground">{match.score2 ?? ""}</span>
+          <span className="shrink-0 font-mono text-muted-foreground">
+            {isDrawResult ? "½" : (match.score2 ?? "")}
+          </span>
         )}
       </div>
       {editable && winThreshold && !winnerExact && (score1 !== "" || score2 !== "") ? (
@@ -197,14 +217,27 @@ export function MatchCard({
         </p>
       ) : null}
       {editable ? (
-        <Button
-          size="sm"
-          className="mt-2 w-full"
-          disabled={isPending || !canSubmit}
-          onClick={submit}
-        >
-          {isPending ? "Saving…" : "Report Score"}
-        </Button>
+        <div className="mt-2 flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            disabled={isPending || !canSubmit}
+            onClick={submit}
+          >
+            {isPending ? "Saving…" : "Report Score"}
+          </Button>
+          {allowDraw && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isPending}
+              onClick={submitDraw}
+              title="Record a draw — each player gets 0.5 match points"
+            >
+              Draw ½-½
+            </Button>
+          )}
+        </div>
       ) : fixedHeight ? (
         <div className="mt-2 h-8" />
       ) : null}

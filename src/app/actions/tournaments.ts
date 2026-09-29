@@ -378,16 +378,51 @@ export async function recordResult(
     }
   } else if (t.format === "double_elim" && winnerId) {
     await advanceDoubleElim(db, tournamentId, match, winnerId, loserId);
-  } else if (t.format === "swiss") {
+  } else {
+    await advanceAfterPoolResult(db, t.format, tournamentId);
+  }
+
+  safeRevalidate(`/t/${tournamentId}`);
+}
+
+// Round robin / Swiss only: a drawn match (½-½) has no winner and no score. Both players
+// get 0.5 match points in the standings. Elimination brackets can't use this — someone
+// has to advance.
+export async function recordDraw(tournamentId: string, matchId: string) {
+  const db = getDb();
+  const match = await db.query.matches.findFirst({ where: eq(matches.id, matchId) });
+  if (!match) throw new Error("Match not found");
+  if (!match.participant1Id || !match.participant2Id) throw new Error("Match not ready");
+  if (match.status === "complete") throw new Error("Match already has a result");
+
+  const t = await db.query.tournaments.findFirst({ where: eq(tournaments.id, tournamentId) });
+  if (!t) throw new Error("Tournament not found");
+  if (t.format !== "round_robin" && t.format !== "swiss") {
+    throw new Error("Draws are only allowed in round robin and Swiss tournaments.");
+  }
+
+  await db
+    .update(matches)
+    .set({ score1: null, score2: null, winnerId: null, status: "complete" })
+    .where(eq(matches.id, matchId));
+
+  await advanceAfterPoolResult(db, t.format, tournamentId);
+  safeRevalidate(`/t/${tournamentId}`);
+}
+
+async function advanceAfterPoolResult(
+  db: ReturnType<typeof getDb>,
+  format: Format,
+  tournamentId: string
+) {
+  if (format === "swiss") {
     await maybeAdvanceSwiss(db, tournamentId);
-  } else if (t.format === "round_robin") {
+  } else if (format === "round_robin") {
     const allMatches = await db.query.matches.findMany({ where: eq(matches.tournamentId, tournamentId) });
     if (allMatches.every((m) => m.status === "complete")) {
       await db.update(tournaments).set({ status: "complete" }).where(eq(tournaments.id, tournamentId));
     }
   }
-
-  safeRevalidate(`/t/${tournamentId}`);
 }
 
 async function isRoundComplete(db: ReturnType<typeof getDb>, roundId: string) {

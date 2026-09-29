@@ -56,8 +56,20 @@ export interface Standing {
   wins: number;
   losses: number;
   draws: number;
+  /** Match points: 1 per win, 0.5 per draw (½-½), 0 per loss. */
+  matchPoints: number;
   pointsFor: number;
   pointsAgainst: number;
+}
+
+// A draw is a completed two-player match with no winner. Byes always have a winner, so
+// they never count as draws.
+export function isDraw(m: {
+  participant1Id: string | null;
+  participant2Id: string | null;
+  winnerId: string | null;
+}): boolean {
+  return !!m.participant1Id && !!m.participant2Id && m.winnerId === null;
 }
 
 export function computeStandings(
@@ -78,6 +90,7 @@ export function computeStandings(
         wins: 0,
         losses: 0,
         draws: 0,
+        matchPoints: 0,
         pointsFor: 0,
         pointsAgainst: 0,
       },
@@ -96,19 +109,23 @@ export function computeStandings(
 
     if (m.winnerId === m.participant1Id) {
       s1.wins++;
+      s1.matchPoints += 1;
       s2.losses++;
     } else if (m.winnerId === m.participant2Id) {
       s2.wins++;
+      s2.matchPoints += 1;
       s1.losses++;
-    } else if (m.winnerId === null && m.score1 != null && m.score2 != null) {
+    } else if (isDraw(m)) {
       s1.draws++;
       s2.draws++;
+      s1.matchPoints += 0.5;
+      s2.matchPoints += 0.5;
     }
   }
 
   return [...table.values()].sort(
     (a, b) =>
-      b.wins - a.wins ||
+      b.matchPoints - a.matchPoints ||
       b.pointsFor - b.pointsAgainst - (a.pointsFor - a.pointsAgainst)
   );
 }

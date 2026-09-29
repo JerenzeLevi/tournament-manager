@@ -75,6 +75,7 @@ export function RoundsBoard({
                             match={m}
                             participantsById={participantsById}
                             bestOf={bestOfFor(round)}
+                            allowDraw
                           />
                         ))}
                     </CardContent>

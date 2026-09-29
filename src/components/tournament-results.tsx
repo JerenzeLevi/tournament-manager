@@ -12,6 +12,8 @@ interface Match {
   roundId: string;
   participant1Id: string | null;
   participant2Id: string | null;
+  score1: number | null;
+  score2: number | null;
   winnerId: string | null;
   status: string;
   bracketSide: string | null;
@@ -126,8 +128,8 @@ export function TournamentResults({
         .map((m) => ({
           participant1Id: m.participant1Id,
           participant2Id: m.participant2Id,
-          score1: null,
-          score2: null,
+          score1: m.score1,
+          score2: m.score2,
           winnerId: m.winnerId,
         }))
     );

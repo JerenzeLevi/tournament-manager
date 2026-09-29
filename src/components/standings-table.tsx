@@ -20,7 +20,7 @@ function computeRanks(standings: Standing[]): number[] {
     const curr = standings[i];
     const prevDiff = prev.pointsFor - prev.pointsAgainst;
     const currDiff = curr.pointsFor - curr.pointsAgainst;
-    const tied = prev.wins === curr.wins && prevDiff === currDiff;
+    const tied = prev.matchPoints === curr.matchPoints && prevDiff === currDiff;
     ranks.push(tied ? ranks[i - 1] : ranks[i - 1] + 1);
   }
   return ranks;
@@ -50,10 +50,10 @@ export function StandingsTable({
           <TableRow key={s.participantId}>
             <TableCell className="font-mono text-muted-foreground">{ranks[i]}</TableCell>
             <TableCell className="flex items-center gap-1.5">
-              {ranks[i] === 1 && s.wins > 0 && <Crown className="size-3.5 text-warning" />}
+              {ranks[i] === 1 && s.matchPoints > 0 &&<Crown className="size-3.5 text-warning" />}
               {participantsById[s.participantId]?.name ?? "—"}
             </TableCell>
-            <TableCell className="text-right font-mono">{s.wins}</TableCell>
+            <TableCell className="text-right font-mono">{s.matchPoints}</TableCell>
             <TableCell className="text-right font-mono">
               {s.wins}-{s.losses}
               {s.draws > 0 ? `-${s.draws}` : ""}

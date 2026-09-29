@@ -19,6 +19,22 @@ starting `0.1.0` baseline rather than split into artificial pre-release patches.
 
 - (nothing pending)
 
+## 0.4.0 — 2026-09-29
+
+New feature: draws (½-½) for round robin and Swiss.
+
+- Match cards in round robin / Swiss get a "Draw ½-½" button next to "Report Score".
+  New `recordDraw` server action stores a completed match with no winner and null
+  scores (no schema change); the card shows ½ for both sides. Elimination brackets
+  are unaffected — someone has to advance.
+- Standings now rank by match points (win = 1, draw = 0.5, loss = 0), then point
+  diff. The `MP` column shows match points (previously just the win count), and
+  `Standing` gains a `matchPoints` field. Swiss pairing uses the same standings, so
+  draws affect pairings too.
+- Fix found along the way: the final-results ranking for round robin / Swiss passed
+  null scores, so it ignored the point-diff tiebreak the standings table used. It now
+  passes real scores so the two agree.
+
 ## 0.3.0 — 2026-08-01
 
 New feature: 3rd place match + final results/ranking screen.
